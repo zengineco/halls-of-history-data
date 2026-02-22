@@ -17,13 +17,17 @@ jobs:
   simulate:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Only one run at a time — queues instead of racing
+    concurrency:
+      group: simulate-hands
+      cancel-in-progress: false
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -45,7 +49,7 @@ jobs:
             echo "New hands simulated. Total: $HANDS"
           fi
 
-      - name: Commit updated history
+      - name: Commit and push
         if: steps.check_changes.outputs.changed == 'true'
         run: |
           git config user.name  "ArchivistDealer[bot]"
@@ -53,4 +57,13 @@ jobs:
           git add history.json
           HANDS=$(node -e "const h=require('./history.json');console.log(h.meta.totalHands)")
           git commit -m "📜 Ledger update — Hand #${HANDS} recorded [automated]"
-          git push
+          git pull --rebase=merges origin main
+          git push origin main
+
+
+
+
+
+
+
+
